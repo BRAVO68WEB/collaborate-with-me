@@ -1,0 +1,16 @@
+{
+  "name": "api",
+  "version": "1.0.0",
+  "description": "Go GraphQL API",
+  "main": "server.go",
+  "scripts": {
+    "build": "make build",
+    "dev": "make dev"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Jyotirmoy <BRAVO68WEB> Bandyopadhayaya",
+    "email": "hi@b68.dev"
+  },
+  "license": "ISC"
+}
