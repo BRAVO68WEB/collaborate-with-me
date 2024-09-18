@@ -2,15 +2,16 @@ package db
 
 import (
 	"context"
-	"fmt"
+	"os"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"os"
 )
 
 type Connection interface {
 	Close()
 	DB() *mongo.Database
+	GetCollection(name string) *mongo.Collection
 }
 
 type conn struct {
@@ -28,7 +29,6 @@ func (c *conn) DB() *mongo.Database {
 }
 
 func ConnectMongo() Connection {
-
 	var c conn
 	var err error
 
@@ -37,6 +37,16 @@ func ConnectMongo() Connection {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Database connected")
+
+	err = c.session.Ping(context.Background(), nil)
+
+	if err != nil {
+		panic(err)
+	}
+
 	return &c
+}
+
+func (c *conn) GetCollection(name string) *mongo.Collection {
+	return c.DB().Collection(name)
 }

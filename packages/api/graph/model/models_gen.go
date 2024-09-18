@@ -2,6 +2,11 @@
 
 package model
 
+type LoginResponse struct {
+	IsSuccess   bool   `json:"is_success"`
+	AccessToken string `json:"access_token"`
+}
+
 type Mutation struct {
 }
 
@@ -23,23 +28,36 @@ type Query struct {
 type Subscription struct {
 }
 
+type UpdateUser struct {
+	Username *string `json:"username,omitempty"`
+	Password *string `json:"password,omitempty"`
+	Email    *string `json:"email,omitempty"`
+	Role     *string `json:"role,omitempty"`
+}
+
+type UploadResponse struct {
+	IsSuccess bool    `json:"is_success"`
+	S3URL     *string `json:"s3_url,omitempty"`
+}
+
 type User struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
+	Role      string `json:"role"`
 	IsActive  bool   `json:"is_active"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 }
 
 type Workspace struct {
-	ID                string   `json:"id"`
-	Name              string   `json:"name"`
-	IsActive          bool     `json:"is_active"`
-	IsPublic          bool     `json:"is_public"`
-	Owner             *User    `json:"owner"`
-	Collaborators     []*User  `json:"collaborators"`
-	ExcalidrawObjects []string `json:"excalidraw_objects"`
-	CreatedAt         string   `json:"created_at"`
-	UpdatedAt         string   `json:"updated_at"`
+	ID                string  `json:"id"`
+	Name              string  `json:"name"`
+	IsActive          bool    `json:"is_active"`
+	IsPublic          bool    `json:"is_public"`
+	Owner             *User   `json:"owner"`
+	Collaborators     []*User `json:"collaborators"`
+	ExcalidrawObjects []any   `json:"excalidraw_objects"`
+	CreatedAt         string  `json:"created_at"`
+	UpdatedAt         string  `json:"updated_at"`
 }

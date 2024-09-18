@@ -1,16 +1,24 @@
-scalar Object
+scalar Any
 scalar DateTime
 scalar ObjectID
+scalar Upload
 
 type User {
   id: ObjectID!
   username: String!
   email: String!
+  role: String!
   is_active: Boolean!
   created_at: DateTime!
   updated_at: DateTime!
 }
 
+input UpdateUser {
+  username: String
+  password: String
+  email: String
+  role: String
+}
 
 type Workspace {
   id: ObjectID!
@@ -19,7 +27,7 @@ type Workspace {
   is_public: Boolean!
   owner: User!
   collaborators: [User!]!
-  excalidraw_objects: [Object!]!
+  excalidraw_objects: [Any!]!
   created_at: DateTime!
   updated_at: DateTime!
 }
@@ -34,6 +42,17 @@ type Query {
     user_id: ObjectID!
   ): Workspace!
   user(id: ObjectID!): User!
+  me: User!
+}
+
+type LoginResponse {
+  is_success: Boolean!
+  access_token: String!
+}
+
+type UploadResponse {
+  is_success: Boolean!
+  s3_url: String
 }
 
 input NewWorkspace {
@@ -41,7 +60,6 @@ input NewWorkspace {
   is_public: Boolean!
   user_id: ObjectID!
 }
-
 input NewUser {
   username: String!
   email: String!
@@ -51,12 +69,10 @@ input NewUser {
 type Subscription {
   liveWorkspaceUpdates(
     workspace_id: ObjectID!
-  ): Object!
-
+  ): Any!
   liveUserUpdates(
     user_id: ObjectID!
   ): User!
-
   liveWorkspaceCollaborators(
     workspace_id: ObjectID!
   ): [User!]!
@@ -83,30 +99,28 @@ type Mutation {
   ): Workspace!
   addExcalidrawObject(
     workspace_id: ObjectID!
-    object: Object!
+    object: Any!
   ): Workspace!
   removeExcalidrawObject(
     workspace_id: ObjectID!
     object_id: ObjectID!
   ): Workspace!
+  singleUpload(
+    file: Upload!
+  ): UploadResponse!
 
   createUser(
     input: NewUser!
   ): User!
-
   updateUser(
     id: ObjectID!
-    input: NewUser!
+    input: UpdateUser!
   ): User!
-
-  deleteUser(
+  disableUser(
     id: ObjectID!
   ): Boolean!
-
   login(
     email: String!
     password: String!
-  ): String!
-
-  logout: Boolean!
+  ): LoginResponse!
 }

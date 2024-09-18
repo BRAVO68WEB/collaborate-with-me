@@ -7,8 +7,12 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graph/model"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/repository"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/utils"
 )
 
 // CreateWorkspace is the resolver for the createWorkspace field.
@@ -37,7 +41,7 @@ func (r *mutationResolver) RemoveUserFromWorkspace(ctx context.Context, workspac
 }
 
 // AddExcalidrawObject is the resolver for the addExcalidrawObject field.
-func (r *mutationResolver) AddExcalidrawObject(ctx context.Context, workspaceID string, object string) (*model.Workspace, error) {
+func (r *mutationResolver) AddExcalidrawObject(ctx context.Context, workspaceID string, object any) (*model.Workspace, error) {
 	panic(fmt.Errorf("not implemented: AddExcalidrawObject - addExcalidrawObject"))
 }
 
@@ -46,34 +50,161 @@ func (r *mutationResolver) RemoveExcalidrawObject(ctx context.Context, workspace
 	panic(fmt.Errorf("not implemented: RemoveExcalidrawObject - removeExcalidrawObject"))
 }
 
+// SingleUpload is the resolver for the singleUpload field.
+func (r *mutationResolver) SingleUpload(ctx context.Context, file graphql.Upload) (*model.UploadResponse, error) {
+	panic(fmt.Errorf("not implemented: SingleUpload - singleUpload"))
+}
+
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: CreateUser - createUser"))
+	result, err := r.Repositories.User.CreateUser(input.Email, input.Password, input.Username)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return &model.User{
+		ID:        result.ID.Hex(),
+		Email:     result.Email,
+		Username:  result.Username,
+		IsActive:  result.IsActive,
+		Role:      result.Role,
+		CreatedAt: result.CreatedAt.Time().GoString(),
+		UpdatedAt: result.UpdatedAt.Time().GoString(),
+	}, nil
 }
 
 // UpdateUser is the resolver for the updateUser field.
-func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input model.NewUser) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: UpdateUser - updateUser"))
+func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input model.UpdateUser) (*model.User, error) {
+	user_claims := utils.ForContext(ctx)
+
+	if user_claims == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	is_admin := r.Repositories.User.CheckIfUserIsAdmin(user_claims.ID)
+
+	if user_claims.ID != id && !is_admin {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	updateUser := repository.UpdateUser{}
+
+	if input.Username != nil && *input.Username != "" {
+		updateUser.Username = *input.Username
+	}
+
+	if input.Password != nil && *input.Password != "" {
+		updateUser.Password = *input.Password
+	}
+
+	if input.Role != nil && *input.Role != "" {
+		if !is_admin {
+			return nil, fmt.Errorf("access denied")
+		}
+
+		updateUser.Role = *input.Role
+	}
+
+	if input.Email != nil && *input.Email != "" {
+		if !is_admin {
+			return nil, fmt.Errorf("access denied")
+		}
+
+		updateUser.Email = *input.Email
+	}
+
+	result, err := r.Repositories.User.UpdateUserByID(id, updateUser)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return &model.User{
+		ID:        result.ID.Hex(),
+		Email:     result.Email,
+		Username:  result.Username,
+		IsActive:  result.IsActive,
+		Role:      result.Role,
+		CreatedAt: result.CreatedAt.Time().GoString(),
+		UpdatedAt: result.UpdatedAt.Time().GoString(),
+	}, nil
 }
 
-// DeleteUser is the resolver for the deleteUser field.
-func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteUser - deleteUser"))
+// DisableUser is the resolver for the disableUser field.
+func (r *mutationResolver) DisableUser(ctx context.Context, id string) (bool, error) {
+	user_claims := utils.ForContext(ctx)
+
+	if user_claims == nil {
+		return false, fmt.Errorf("access denied")
+	}
+
+	is_admin := r.Repositories.User.CheckIfUserIsAdmin(user_claims.ID)
+
+	if !is_admin {
+		return false, fmt.Errorf("access denied")
+	}
+
+	_, err := r.Repositories.User.DisableUserByID(id)
+
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+
+	return true, nil
 }
 
 // Login is the resolver for the login field.
-func (r *mutationResolver) Login(ctx context.Context, email string, password string) (string, error) {
-	panic(fmt.Errorf("not implemented: Login - login"))
-}
+func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.LoginResponse, error) {
+	token, err := r.Repositories.User.Login(email, password)
 
-// Logout is the resolver for the logout field.
-func (r *mutationResolver) Logout(ctx context.Context) (bool, error) {
-	panic(fmt.Errorf("not implemented: Logout - logout"))
+	if err != nil {
+		return &model.LoginResponse{
+			IsSuccess:   false,
+			AccessToken: "",
+		}, err
+	}
+
+	return &model.LoginResponse{
+		IsSuccess:   true,
+		AccessToken: token,
+	}, nil
 }
 
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	panic(fmt.Errorf("not implemented: Users - users"))
+	user_claims := utils.ForContext(ctx)
+
+	if user_claims == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	users, err := r.Repositories.User.GetUsers(
+		1,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*model.User
+
+	for _, user := range users {
+		result = append(result, &model.User{
+			ID:        user.ID.Hex(),
+			Username:  user.Username,
+			Email:     user.Email,
+			Role:      user.Role,
+			IsActive:  user.IsActive,
+			CreatedAt: user.CreatedAt.Time().GoString(),
+			UpdatedAt: user.UpdatedAt.Time().GoString(),
+		})
+	}
+
+	return result, nil
 }
 
 // Workspaces is the resolver for the workspaces field.
@@ -88,11 +219,56 @@ func (r *queryResolver) Workspace(ctx context.Context, id string, userID string)
 
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: User - user"))
+	user_claims := utils.ForContext(ctx)
+
+	if user_claims == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	user, err := r.Repositories.User.GetUserByID(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.User{
+		ID:        user.ID.Hex(),
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		IsActive:  user.IsActive,
+		CreatedAt: user.CreatedAt.Time().GoString(),
+		UpdatedAt: user.UpdatedAt.Time().GoString(),
+	}, nil
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+	user_claims := utils.ForContext(ctx)
+
+	if user_claims == nil {
+		return nil, fmt.Errorf("access denied")
+	}
+
+	user, err := r.Repositories.User.GetUserByID(user_claims.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.User{
+		ID:        user.ID.Hex(),
+		Username:  user.Username,
+		Email:     user.Email,
+		Role:      user.Role,
+		IsActive:  user.IsActive,
+		CreatedAt: user.CreatedAt.Time().GoString(),
+		UpdatedAt: user.UpdatedAt.Time().GoString(),
+	}, nil
 }
 
 // LiveWorkspaceUpdates is the resolver for the liveWorkspaceUpdates field.
-func (r *subscriptionResolver) LiveWorkspaceUpdates(ctx context.Context, workspaceID string) (<-chan string, error) {
+func (r *subscriptionResolver) LiveWorkspaceUpdates(ctx context.Context, workspaceID string) (<-chan any, error) {
 	panic(fmt.Errorf("not implemented: LiveWorkspaceUpdates - liveWorkspaceUpdates"))
 }
 

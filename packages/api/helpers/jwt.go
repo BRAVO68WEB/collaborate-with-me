@@ -3,9 +3,26 @@ package helpers
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/golang-jwt/jwt"
 )
+
+func CreateJWT(id string, username string, role string) (string, error) {
+	current_ts := time.Now().Unix()
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+	claims["id"] = id
+	claims["username"] = username
+	claims["role"] = role
+	claims["iat"] = current_ts
+	claims["exp"] = current_ts + 4*60*60
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
 
 func validateSignedMethod(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -15,18 +32,24 @@ func validateSignedMethod(token *jwt.Token) (interface{}, error) {
 }
 
 type UserJWT struct {
-	ID    string
-	Email string
+	ID       string
+	Username string
+	Role     string
 }
 
 func VerifyJWT(tokenString string) (bool, *UserJWT) {
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	_, err := jwt.ParseWithClaims(tokenString, claims, validateSignedMethod)
+	token, err := jwt.Parse(tokenString, validateSignedMethod)
+
 	if err != nil {
 		return false, nil
 	}
-	email, ok := claims["email"].(string)
+	if !token.Valid {
+		return false, nil
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+
+	username, ok := claims["username"].(string)
 	if !ok {
 		return false, nil
 	}
@@ -34,9 +57,14 @@ func VerifyJWT(tokenString string) (bool, *UserJWT) {
 	if !ok {
 		return false, nil
 	}
+	role, ok := claims["role"].(string)
+	if !ok {
+		return false, nil
+	}
 
 	return true, &UserJWT{
-		Email: email,
-		ID:    id,
+		ID:       id,
+		Username: username,
+		Role:     role,
 	}
 }

@@ -1,13 +1,18 @@
 package main
 
 import (
-	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/db"
-	"github.com/joho/godotenv"
+	"context"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/db"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/helpers"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/repository"
+	"github.com/joho/godotenv"
+
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graph"
 )
@@ -20,23 +25,49 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Connecting to the database
 	conn := db.ConnectMongo()
+	awsSession := helpers.ConnectS3()
 
-	// Setting up graphql server endpoint "/"
 	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
-		Conn: &conn,
+		Repositories: repository.Init(
+			conn,
+			awsSession,
+		),
 	}}))
 
-	// Setting up the playground
-	http.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
-	http.Handle("/graphql", srv)
+	srv.AddTransport(&transport.Websocket{})
 
-	// Fetching the port number from the env file and connecting the server to the port
+	http.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
+	http.Handle("/graphql", authMiddleware(srv))
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get("authorization")
+
+		if header == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		isValid, claims := helpers.VerifyJWT(header)
+
+		println(isValid)
+
+		if !isValid {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "user", claims)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
