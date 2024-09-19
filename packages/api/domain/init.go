@@ -26,6 +26,8 @@ func Init(
 			db,
 			awsSession,
 		),
+		User:      NewUserDomain(db),
+		Workspace: NewWorkspaceRepository(db.GetCollection("workspace")),
 	}
 
 	return s
