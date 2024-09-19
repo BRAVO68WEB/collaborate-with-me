@@ -4,9 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
-	"mime/multipart"
-	"net/textproto"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,7 +12,7 @@ import (
 	"github.com/h2non/bimg"
 )
 
-func OptimizeImage(file *multipart.File) (*bytes.Reader, error) {
+func OptimizeImage(file *io.ReadSeeker) (*bytes.Reader, error) {
 	buffer, err := io.ReadAll(*file)
 	if err != nil {
 		panic(err)
@@ -25,20 +22,14 @@ func OptimizeImage(file *multipart.File) (*bytes.Reader, error) {
 	return bytes.NewReader(newImage), err
 }
 
-func UploadFile(awsSession *session.Session, file *multipart.FileHeader, name string, bucketName ...string) (string, error) {
+func UploadFile(awsSession *session.Session, file *io.ReadSeeker, name string, bucketName ...string) (string, error) {
 	uploader := s3manager.NewUploader(awsSession)
-	open, err := file.Open()
-	defer func(open multipart.File) {
-		err := open.Close()
-		if err != nil {
-			log.Println("Error: ", err)
-		}
-	}(open)
-	image, err := OptimizeImage(&open)
+
+	image, err := OptimizeImage(file)
 	if err != nil {
 		return "", err
 	}
-
+	println("hello 2")
 	bucket := os.Getenv("S3_BUCKET")
 	if len(bucketName) > 0 {
 		bucket = bucketName[0]
@@ -56,12 +47,4 @@ func UploadFile(awsSession *session.Session, file *multipart.FileHeader, name st
 	}
 	imgUrl := fmt.Sprintf("%s/%s", os.Getenv("S3_OBJECT_URL"), key)
 	return imgUrl, nil
-}
-
-func ConvertByteToFileHeader(file []byte) *multipart.FileHeader {
-	return &multipart.FileHeader{
-		Filename: "file",
-		Header:   textproto.MIMEHeader{},
-		Size:     int64(len(file)),
-	}
 }

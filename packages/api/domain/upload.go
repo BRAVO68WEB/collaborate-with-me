@@ -2,7 +2,6 @@ package domain
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"time"
 
@@ -35,29 +34,30 @@ type uploadDomain struct {
 }
 
 func NewUploadDomain(
-	awsSession session.Session,
+	awsSession *session.Session,
 ) UploadDomain {
 	return &uploadDomain{
-		awsSession: &awsSession,
+		awsSession: awsSession,
 	}
 }
 
 func (d *uploadDomain) SingleFileUpload(
 	file graphql.Upload,
 ) (string, error) {
+
 	bucket_name := os.Getenv("S3_BUCKET")
 	current_ts := fmt.Sprintf("%d", time.Now().Unix())
 
-	v, err := io.ReadAll(file.File)
-	if err != nil {
-		return "", err
-	}
+	//v, err := io.ReadAll(file.File)
+	//if err != nil {
+	//	return "", err
+	//}
 
-	fileHeader := helpers.ConvertByteToFileHeader(v)
-
+	//fileHeader := helpers.ConvertByteToFileHeader(v)
+	println("hello")
 	upload, err := helpers.UploadFile(
 		d.awsSession,
-		fileHeader,
+		&file.File,
 		current_ts+"_"+file.Filename,
 		bucket_name,
 	)
@@ -77,17 +77,17 @@ func (d *uploadDomain) MultipleFileUpload(
 	current_ts := fmt.Sprintf("%d", time.Now().Unix())
 
 	for _, file := range files {
-		v, err := io.ReadAll(file.File)
-
-		if err != nil {
-			return nil, err
-		}
-
-		fileHeader := helpers.ConvertByteToFileHeader(v)
+		//v, err := io.ReadAll(file.File)
+		//
+		//if err != nil {
+		//	return nil, err
+		//}
+		//
+		//fileHeader := helpers.ConvertByteToFileHeader(v)
 
 		upload, err := helpers.UploadFile(
 			d.awsSession,
-			fileHeader,
+			&file.File,
 			current_ts+"_"+file.Filename,
 			bucket_name,
 		)

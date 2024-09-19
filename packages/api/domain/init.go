@@ -29,6 +29,7 @@ func Init(
 		),
 		User:      NewUserDomain(db),
 		Workspace: NewWorkspaceDomain(db),
+		Upload:    NewUploadDomain(awsSession),
 	}
 
 	return s
