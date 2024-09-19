@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
+	"net/textproto"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -25,7 +26,6 @@ func OptimizeImage(file *multipart.File) (*bytes.Reader, error) {
 }
 
 func UploadFile(awsSession *session.Session, file *multipart.FileHeader, name string, bucketName ...string) (string, error) {
-
 	uploader := s3manager.NewUploader(awsSession)
 	open, err := file.Open()
 	defer func(open multipart.File) {
@@ -39,9 +39,6 @@ func UploadFile(awsSession *session.Session, file *multipart.FileHeader, name st
 		return "", err
 	}
 
-	if err != nil {
-		return "", err
-	}
 	bucket := os.Getenv("S3_BUCKET")
 	if len(bucketName) > 0 {
 		bucket = bucketName[0]
@@ -59,4 +56,12 @@ func UploadFile(awsSession *session.Session, file *multipart.FileHeader, name st
 	}
 	imgUrl := fmt.Sprintf("%s/%s", os.Getenv("S3_OBJECT_URL"), key)
 	return imgUrl, nil
+}
+
+func ConvertByteToFileHeader(file []byte) *multipart.FileHeader {
+	return &multipart.FileHeader{
+		Filename: "file",
+		Header:   textproto.MIMEHeader{},
+		Size:     int64(len(file)),
+	}
 }

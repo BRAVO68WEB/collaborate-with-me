@@ -13,6 +13,7 @@ type Domain struct {
 
 	User      UserDomain
 	Workspace WorkspaceDomain
+	Upload    UploadDomain
 }
 
 func Init(
@@ -27,7 +28,7 @@ func Init(
 			awsSession,
 		),
 		User:      NewUserDomain(db),
-		Workspace: NewWorkspaceRepository(db.GetCollection("workspace")),
+		Workspace: NewWorkspaceDomain(db),
 	}
 
 	return s

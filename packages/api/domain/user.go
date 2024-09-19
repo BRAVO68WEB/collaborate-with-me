@@ -68,7 +68,7 @@ func NewUserDomain(
 ) UserDomain {
 	return &userDomain{
 		user_repo: repository.NewUserRepository(
-			db.GetCollection("user"),
+			db.GetCollection("users"),
 		),
 	}
 }

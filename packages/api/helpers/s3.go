@@ -13,7 +13,6 @@ func ConnectS3() *session.Session {
 	s3Secret := os.Getenv("S3_SECRET_KEY")
 	s3Region := os.Getenv("S3_REGION")
 	sess, err := session.NewSession(
-
 		&aws.Config{
 			Endpoint: aws.String(os.Getenv("S3_ENDPOINT")),
 			Region:   aws.String(s3Region),

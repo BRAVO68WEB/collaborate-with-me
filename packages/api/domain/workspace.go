@@ -1,6 +1,6 @@
 package domain
 
-import "go.mongodb.org/mongo-driver/mongo"
+import "github.com/BRAVO68WEB/collaborate-with-me/packages/api/db"
 
 type WorkspaceDomain interface {
 }
@@ -8,8 +8,8 @@ type WorkspaceDomain interface {
 type workspaceDomain struct {
 }
 
-func NewWorkspaceRepository(
-	col *mongo.Collection,
+func NewWorkspaceDomain(
+	db db.Connection,
 ) WorkspaceDomain {
 	return &workspaceDomain{}
 }

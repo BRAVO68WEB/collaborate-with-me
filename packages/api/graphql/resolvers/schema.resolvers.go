@@ -53,7 +53,17 @@ func (r *mutationResolver) RemoveExcalidrawObject(ctx context.Context, workspace
 
 // SingleUpload is the resolver for the singleUpload field.
 func (r *mutationResolver) SingleUpload(ctx context.Context, file graphql.Upload) (*model.UploadResponse, error) {
-	panic(fmt.Errorf("not implemented: SingleUpload - singleUpload"))
+	upload, err := r.Domain.Upload.SingleFileUpload(file)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return &model.UploadResponse{
+		IsSuccess: true,
+		S3URL:     &upload,
+	}, nil
 }
 
 // CreateUser is the resolver for the createUser field.
@@ -71,8 +81,8 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		Username:  result.Username,
 		IsActive:  result.IsActive,
 		Role:      result.Role,
-		CreatedAt: result.CreatedAt.Time().GoString(),
-		UpdatedAt: result.UpdatedAt.Time().GoString(),
+		CreatedAt: result.CreatedAt.Time().UTC().String(),
+		UpdatedAt: result.UpdatedAt.Time().UTC().String(),
 	}, nil
 }
 
@@ -129,8 +139,8 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 		Username:  result.Username,
 		IsActive:  result.IsActive,
 		Role:      result.Role,
-		CreatedAt: result.CreatedAt.Time().GoString(),
-		UpdatedAt: result.UpdatedAt.Time().GoString(),
+		CreatedAt: result.CreatedAt.Time().UTC().String(),
+		UpdatedAt: result.UpdatedAt.Time().UTC().String(),
 	}, nil
 }
 
@@ -200,8 +210,8 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 			Email:     user.Email,
 			Role:      user.Role,
 			IsActive:  user.IsActive,
-			CreatedAt: user.CreatedAt.Time().GoString(),
-			UpdatedAt: user.UpdatedAt.Time().GoString(),
+			CreatedAt: user.CreatedAt.Time().UTC().String(),
+			UpdatedAt: user.UpdatedAt.Time().UTC().String(),
 		})
 	}
 
@@ -238,8 +248,8 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 		Email:     user.Email,
 		Role:      user.Role,
 		IsActive:  user.IsActive,
-		CreatedAt: user.CreatedAt.Time().GoString(),
-		UpdatedAt: user.UpdatedAt.Time().GoString(),
+		CreatedAt: user.CreatedAt.Time().UTC().String(),
+		UpdatedAt: user.UpdatedAt.Time().UTC().String(),
 	}, nil
 }
 
@@ -263,8 +273,8 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 		Email:     user.Email,
 		Role:      user.Role,
 		IsActive:  user.IsActive,
-		CreatedAt: user.CreatedAt.Time().GoString(),
-		UpdatedAt: user.UpdatedAt.Time().GoString(),
+		CreatedAt: user.CreatedAt.Time().UTC().String(),
+		UpdatedAt: user.UpdatedAt.Time().UTC().String(),
 	}, nil
 }
 
