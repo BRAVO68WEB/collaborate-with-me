@@ -20,6 +20,8 @@ func Init(
 	awsSession *session.Session,
 ) Domain {
 	s := Domain{
+		db:         db,
+		awsSession: awsSession,
 		repo: repository.Init(
 			db,
 			awsSession,
