@@ -48,13 +48,10 @@ func (d *uploadDomain) SingleFileUpload(
 	bucket_name := os.Getenv("S3_BUCKET")
 	current_ts := fmt.Sprintf("%d", time.Now().Unix())
 
-	//v, err := io.ReadAll(file.File)
-	//if err != nil {
-	//	return "", err
-	//}
+	if !helpers.IsImage(file.Filename) {
+		return "", fmt.Errorf("File is not an image")
+	}
 
-	//fileHeader := helpers.ConvertByteToFileHeader(v)
-	println("hello")
 	upload, err := helpers.UploadFile(
 		d.awsSession,
 		&file.File,
@@ -77,14 +74,6 @@ func (d *uploadDomain) MultipleFileUpload(
 	current_ts := fmt.Sprintf("%d", time.Now().Unix())
 
 	for _, file := range files {
-		//v, err := io.ReadAll(file.File)
-		//
-		//if err != nil {
-		//	return nil, err
-		//}
-		//
-		//fileHeader := helpers.ConvertByteToFileHeader(v)
-
 		upload, err := helpers.UploadFile(
 			d.awsSession,
 			&file.File,

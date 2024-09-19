@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -29,7 +30,7 @@ func UploadFile(awsSession *session.Session, file *io.ReadSeeker, name string, b
 	if err != nil {
 		return "", err
 	}
-	println("hello 2")
+
 	bucket := os.Getenv("S3_BUCKET")
 	if len(bucketName) > 0 {
 		bucket = bucketName[0]
@@ -47,4 +48,15 @@ func UploadFile(awsSession *session.Session, file *io.ReadSeeker, name string, b
 	}
 	imgUrl := fmt.Sprintf("%s/%s", os.Getenv("S3_OBJECT_URL"), key)
 	return imgUrl, nil
+}
+
+func IsImage(fileName string) bool {
+	allowedExt := []string{".png", ".jpg", ".jpeg"}
+	ext := fileName[strings.LastIndex(fileName, "."):]
+	for _, allowed := range allowedExt {
+		if allowed == ext {
+			return true
+		}
+	}
+	return false
 }
