@@ -2,22 +2,28 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/db"
-	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/helpers"
-	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/repository"
-	"github.com/joho/godotenv"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/db"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graph"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/helpers"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/middleware"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/repository"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"golang.org/x/sync/errgroup"
 )
 
-const defaultPort = "8080"
+const defaultPort = "4040"
 
 func main() {
 	err := godotenv.Load()
@@ -25,49 +31,115 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	var g errgroup.Group
+
+	routerV1 := Init()
+
+	addr := fmt.Sprintf("0.0.0.0:%s", defaultPort)
+
+	println("Server is running on http://", addr)
+
+	s := &http.Server{
+		Addr:         addr,
+		Handler:      routerV1,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		ErrorLog:     log.New(os.Stderr, "", 0),
+	}
+
+	g.Go(func() error {
+		return s.ListenAndServe()
+	})
+
+	if err := g.Wait(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func graphqlHandler(introspectionEnabled bool) gin.HandlerFunc {
+	RedisAddress := os.Getenv("REDIS_ADDRESS")
+
+	cacheAPQ, err := helpers.NewAPQCache(RedisAddress, 24*time.Hour)
+	if err != nil {
+		log.Fatalf("cannot create APQ redis cache: %v", err)
+	}
+
+	cacheSQC, err := helpers.NewSQCCache(RedisAddress, 24*time.Hour)
+	if err != nil {
+		log.Fatalf("cannot create APQ redis cache: %v", err)
+	}
+
 	conn := db.ConnectMongo()
 	awsSession := helpers.ConnectS3()
 
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{
-		Repositories: repository.Init(
-			conn,
-			awsSession,
+	h := handler.NewDefaultServer(
+		graph.NewExecutableSchema(
+			graph.Config{
+				Resolvers: &graph.Resolver{
+					Repositories: repository.Init(
+						conn,
+						awsSession,
+					),
+				},
+			},
 		),
-	}}))
+	)
 
-	srv.AddTransport(&transport.Websocket{})
+	h.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+	})
+	h.AddTransport(transport.Options{})
+	h.AddTransport(transport.GET{})
+	h.AddTransport(transport.POST{})
+	h.AddTransport(transport.MultipartForm{})
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/graphql"))
-	http.Handle("/graphql", authMiddleware(srv))
+	h.SetQueryCache(cacheSQC)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	h.Use(extension.AutomaticPersistedQuery{
+		Cache: cacheAPQ,
+	})
+
+	if introspectionEnabled {
+		h.Use(extension.Introspection{})
 	}
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
 }
 
-func authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		header := r.Header.Get("authorization")
+func playgroundHandler() gin.HandlerFunc {
+	h := playground.Handler("GraphQL", "/query")
 
-		if header == "" {
-			next.ServeHTTP(w, r)
-			return
-		}
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
 
-		isValid, claims := helpers.VerifyJWT(header)
+func Init() *gin.Engine {
+	router := gin.Default()
+	router.Use(gin.Recovery())
+	// setup cors
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowHeaders = []string{"Accept", "Accept-CH", "Accept-Charset", "Accept-Datetime", "Accept-Encoding", "Accept-Ext", "Accept-Features", "Accept-Language", "Accept-Params", "Accept-Ranges", "Access-Control-Allow-Credentials", "Access-Control-Allow-Headers", "Access-Control-Allow-Methods", "Access-Control-Allow-Origin", "Access-Control-Expose-Headers", "Access-Control-Max-Age", "Access-Control-Request-Headers", "Access-Control-Request-Method", "Authorization", "Content-Type"}
+	corsConfig.AllowAllOrigins = true
 
-		println(isValid)
+	router.Use(cors.New(corsConfig))
 
-		if !isValid {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
+	introspectionEnabled := true
 
-		ctx := context.WithValue(r.Context(), "user", claims)
+	healthHandler := func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "OK!",
+		})
+	}
+	router.Use(middleware.GinContextToContext())
 
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+	router.GET("/playground", playgroundHandler())
+
+	router.GET("/health", healthHandler)
+
+	router.POST("/query", middleware.NewJWT().Auth(context.Background()), graphqlHandler(introspectionEnabled))
+
+	return router
 }

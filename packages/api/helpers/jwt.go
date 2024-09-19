@@ -12,9 +12,7 @@ func CreateJWT(id string, username string, role string) (string, error) {
 	current_ts := time.Now().Unix()
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["id"] = id
-	claims["username"] = username
-	claims["role"] = role
+	claims["user_id"] = id
 	claims["iat"] = current_ts
 	claims["exp"] = current_ts + 4*60*60
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
@@ -32,9 +30,7 @@ func validateSignedMethod(token *jwt.Token) (interface{}, error) {
 }
 
 type UserJWT struct {
-	ID       string
-	Username string
-	Role     string
+	ID string
 }
 
 func VerifyJWT(tokenString string) (bool, *UserJWT) {
@@ -49,22 +45,12 @@ func VerifyJWT(tokenString string) (bool, *UserJWT) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 
-	username, ok := claims["username"].(string)
-	if !ok {
-		return false, nil
-	}
-	id, ok := claims["id"].(string)
-	if !ok {
-		return false, nil
-	}
-	role, ok := claims["role"].(string)
+	id, ok := claims["user_id"].(string)
 	if !ok {
 		return false, nil
 	}
 
 	return true, &UserJWT{
-		ID:       id,
-		Username: username,
-		Role:     role,
+		ID: id,
 	}
 }

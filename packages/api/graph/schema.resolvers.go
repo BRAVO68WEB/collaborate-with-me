@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"log"
 
+	appContext "github.com/BRAVO68WEB/collaborate-with-me/packages/api/utils"
+
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graph/model"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/repository"
@@ -244,13 +246,13 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
-	user_claims := utils.ForContext(ctx)
+	userID, err := appContext.UserIDFromContext(ctx)
 
-	if user_claims == nil {
-		return nil, fmt.Errorf("access denied")
+	if err != nil {
+		return nil, err
 	}
 
-	user, err := r.Repositories.User.GetUserByID(user_claims.ID)
+	user, err := r.Repositories.User.GetUserByID(userID)
 
 	if err != nil {
 		return nil, err
