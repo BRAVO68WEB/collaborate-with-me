@@ -15,27 +15,37 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useMutation } from '@apollo/client'
+import { LOGIN_USER } from '@/lib/queries/user'
+import { apolloClient } from '@/lib/apolloClient'
 
 export function LoginPageComponent() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [error, setError] = useState('')
     const router = useRouter()
-
+    const [login, { data, loading, error }] = useMutation(LOGIN_USER, {
+        client: apolloClient,
+    })
+    console.log(data)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setError('')
+        // setError('')
 
         // Here you would typically make an API call to authenticate the user
         // For this example, we'll just simulate a successful login
         try {
             // Simulated API call
-            await new Promise((resolve) => setTimeout(resolve, 1000))
-
+            await login({
+                variables: {
+                    email,
+                    password,
+                },
+            })
+            console.log(data)
             // If login is successful, redirect to workspaces page
             router.push('/')
         } catch (err) {
-            setError('Invalid email or password')
+            // setError('Invalid email or password')
         }
     }
 
@@ -71,10 +81,12 @@ export function LoginPageComponent() {
                                 required
                             />
                         </div>
-                        {error && (
+                        {error?.message && (
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>{error}</AlertDescription>
+                                <AlertDescription>
+                                    {error.message}
+                                </AlertDescription>
                             </Alert>
                         )}
                         <Button type="submit" className="w-full">
