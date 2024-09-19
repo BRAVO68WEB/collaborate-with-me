@@ -1,4 +1,4 @@
-package graph
+package resolvers
 
 // This file will be automatically regenerated based on the schema, any resolver implementations
 // will be copied through when generating and any unknown code will be moved to the end.
@@ -9,12 +9,11 @@ import (
 	"fmt"
 	"log"
 
-	appContext "github.com/BRAVO68WEB/collaborate-with-me/packages/api/utils"
-
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graph/model"
+	gqlgen "github.com/BRAVO68WEB/collaborate-with-me/packages/api/graphql"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graphql/model"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/repository"
-	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/utils"
+	appContext "github.com/BRAVO68WEB/collaborate-with-me/packages/api/utils"
 )
 
 // CreateWorkspace is the resolver for the createWorkspace field.
@@ -79,15 +78,15 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 
 // UpdateUser is the resolver for the updateUser field.
 func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input model.UpdateUser) (*model.User, error) {
-	user_claims := utils.ForContext(ctx)
+	userID, err := appContext.UserIDFromContext(ctx)
 
-	if user_claims == nil {
-		return nil, fmt.Errorf("access denied")
+	if err != nil {
+		return nil, err
 	}
 
-	is_admin := r.Repositories.User.CheckIfUserIsAdmin(user_claims.ID)
+	is_admin := r.Repositories.User.CheckIfUserIsAdmin(userID)
 
-	if user_claims.ID != id && !is_admin {
+	if userID != id && !is_admin {
 		return nil, fmt.Errorf("access denied")
 	}
 
@@ -137,19 +136,19 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 
 // DisableUser is the resolver for the disableUser field.
 func (r *mutationResolver) DisableUser(ctx context.Context, id string) (bool, error) {
-	user_claims := utils.ForContext(ctx)
+	userID, err := appContext.UserIDFromContext(ctx)
 
-	if user_claims == nil {
-		return false, fmt.Errorf("access denied")
+	if err != nil {
+		return false, err
 	}
 
-	is_admin := r.Repositories.User.CheckIfUserIsAdmin(user_claims.ID)
+	is_admin := r.Repositories.User.CheckIfUserIsAdmin(userID)
 
 	if !is_admin {
 		return false, fmt.Errorf("access denied")
 	}
 
-	_, err := r.Repositories.User.DisableUserByID(id)
+	_, err = r.Repositories.User.DisableUserByID(id)
 
 	if err != nil {
 		log.Println(err)
@@ -178,10 +177,10 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	user_claims := utils.ForContext(ctx)
+	_, err := appContext.UserIDFromContext(ctx)
 
-	if user_claims == nil {
-		return nil, fmt.Errorf("access denied")
+	if err != nil {
+		return nil, err
 	}
 
 	users, err := r.Repositories.User.GetUsers(
@@ -221,10 +220,10 @@ func (r *queryResolver) Workspace(ctx context.Context, id string, userID string)
 
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	user_claims := utils.ForContext(ctx)
+	_, err := appContext.UserIDFromContext(ctx)
 
-	if user_claims == nil {
-		return nil, fmt.Errorf("access denied")
+	if err != nil {
+		return nil, err
 	}
 
 	user, err := r.Repositories.User.GetUserByID(id)
@@ -284,14 +283,14 @@ func (r *subscriptionResolver) LiveWorkspaceCollaborators(ctx context.Context, w
 	panic(fmt.Errorf("not implemented: LiveWorkspaceCollaborators - liveWorkspaceCollaborators"))
 }
 
-// Mutation returns MutationResolver implementation.
-func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+// Mutation returns gqlgen.MutationResolver implementation.
+func (r *Resolver) Mutation() gqlgen.MutationResolver { return &mutationResolver{r} }
 
-// Query returns QueryResolver implementation.
-func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
+// Query returns gqlgen.QueryResolver implementation.
+func (r *Resolver) Query() gqlgen.QueryResolver { return &queryResolver{r} }
 
-// Subscription returns SubscriptionResolver implementation.
-func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+// Subscription returns gqlgen.SubscriptionResolver implementation.
+func (r *Resolver) Subscription() gqlgen.SubscriptionResolver { return &subscriptionResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
