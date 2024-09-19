@@ -16,7 +16,7 @@ type Repository struct {
 func Init(
 	db db.Connection,
 	awsSession *session.Session,
-) *Repository {
+) Repository {
 	s := Repository{
 		User: NewUserRepository(
 			db.GetCollection("users"),
@@ -26,5 +26,5 @@ func Init(
 		),
 	}
 
-	return &s
+	return s
 }

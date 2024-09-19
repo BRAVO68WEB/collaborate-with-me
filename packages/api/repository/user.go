@@ -2,11 +2,9 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"log"
 	"time"
 
-	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/helpers"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -51,23 +49,6 @@ type UserRepository interface {
 	GetUserByUserName(
 		username string,
 	) (models.User, error)
-
-	Login(
-		email string,
-		password string,
-	) (string, error)
-
-	CheckIfUserIsActiveByID(
-		ID string,
-	) bool
-
-	CheckIfUserIsActiveByEmail(
-		email string,
-	) bool
-
-	CheckIfUserIsAdmin(
-		ID string,
-	) bool
 }
 
 type userRepository struct {
@@ -89,24 +70,18 @@ func (r *userRepository) CreateUser(
 ) (models.User, error) {
 	id := primitive.NewObjectID()
 
-	passwordHash, err := helpers.HashPassword(password)
-
-	if err != nil {
-		return models.User{}, err
-	}
-
 	newUser := models.User{
 		ID:        id,
 		Email:     email,
 		Username:  username,
-		Password:  passwordHash,
+		Password:  password,
 		Role:      "user",
 		IsActive:  true,
 		CreatedAt: primitive.NewDateTimeFromTime(time.Now()),
 		UpdatedAt: primitive.NewDateTimeFromTime(time.Now()),
 	}
 
-	_, err = r.user.InsertOne(context.TODO(), newUser)
+	_, err := r.user.InsertOne(context.TODO(), newUser)
 
 	if err != nil {
 		log.Fatal(err)
@@ -125,18 +100,6 @@ func (r *userRepository) UpdateUserByID(
 		return models.User{}, err
 	}
 
-	user_to_update := r.user.FindOne(context.TODO(), bson.M{
-		"_id": _ID,
-	})
-
-	var user_data models.User
-
-	err = user_to_update.Decode(&user_data)
-
-	if err != nil {
-		return models.User{}, err
-	}
-
 	updatedUser := models.User{}
 
 	if user.Username != "" {
@@ -148,13 +111,7 @@ func (r *userRepository) UpdateUserByID(
 	}
 
 	if user.Password != "" {
-		passwordHash, err := helpers.HashPassword(user.Password)
-
-		if err != nil {
-			return models.User{}, err
-		}
-
-		updatedUser.Password = passwordHash
+		updatedUser.Password = user.Password
 	}
 
 	if user.Role != "" {
@@ -180,18 +137,6 @@ func (r *userRepository) DisableUserByID(
 	ID string,
 ) (models.User, error) {
 	_ID, err := primitive.ObjectIDFromHex(ID)
-
-	if err != nil {
-		return models.User{}, err
-	}
-
-	user_to_disable := r.user.FindOne(context.TODO(), bson.M{
-		"_id": _ID,
-	})
-
-	var user_data models.User
-
-	err = user_to_disable.Decode(&user_data)
 
 	if err != nil {
 		return models.User{}, err
@@ -299,93 +244,4 @@ func (r *userRepository) GetUserByUserName(
 	}
 
 	return user, nil
-}
-
-func (r *userRepository) Login(
-	email string,
-	password string,
-) (string, error) {
-	user, err := r.GetUserByEmail(email)
-
-	if err != nil {
-		return "", errors.New("user not found")
-	}
-
-	if !helpers.ValidatePassword(password, user.Password) {
-		return "", errors.New("invalid password")
-	}
-
-	token, err := helpers.CreateJWT(user.ID.Hex(), user.Username, user.Role)
-
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
-func (r *userRepository) CheckIfUserIsActiveByID(
-	ID string,
-) bool {
-	_ID, err := primitive.ObjectIDFromHex(ID)
-
-	if err != nil {
-		return false
-	}
-
-	result := r.user.FindOne(context.TODO(), bson.M{
-		"_id": _ID,
-	})
-
-	var user models.User
-
-	err = result.Decode(&user)
-
-	if err != nil {
-		return false
-	}
-
-	return user.IsActive
-}
-
-func (r *userRepository) CheckIfUserIsActiveByEmail(
-	email string,
-) bool {
-	result := r.user.FindOne(context.TODO(), bson.M{
-		"email": email,
-	})
-
-	var user models.User
-
-	err := result.Decode(&user)
-
-	if err != nil {
-		return false
-	}
-
-	return user.IsActive
-}
-
-func (r *userRepository) CheckIfUserIsAdmin(
-	ID string,
-) bool {
-	_ID, err := primitive.ObjectIDFromHex(ID)
-
-	if err != nil {
-		return false
-	}
-
-	result := r.user.FindOne(context.TODO(), bson.M{
-		"_id": _ID,
-	})
-
-	var user models.User
-
-	err = result.Decode(&user)
-
-	if err != nil {
-		return false
-	}
-
-	return user.Role == "admin"
 }

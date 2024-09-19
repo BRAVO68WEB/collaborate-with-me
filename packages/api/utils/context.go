@@ -35,7 +35,6 @@ func WithUserID(parent context.Context, userID string) context.Context {
 // UserIDFromContext returns the user id from the context
 func UserIDFromContext(ctx context.Context) (string, error) {
 	log := helpers.Logger(ctx)
-	fmt.Println(ctx.Value(keyUserID))
 	userID, ok := ctx.Value(keyUserID).(string)
 	if !ok {
 		log.Error("No user id present in context...")
@@ -78,7 +77,6 @@ func RequestFromContext(ctx context.Context) (string, error) {
 	if !ok {
 		log.Error("No request present in context...")
 		return "", errors.New("no request present in context")
-
 	}
 	return req, nil
 
