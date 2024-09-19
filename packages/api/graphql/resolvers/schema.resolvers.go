@@ -58,7 +58,7 @@ func (r *mutationResolver) SingleUpload(ctx context.Context, file graphql.Upload
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
-	result, err := r.Repositories.User.CreateUser(input.Email, input.Password, input.Username)
+	result, err := r.Domain.User.CreateUser(input.Email, input.Password, input.Username)
 
 	if err != nil {
 		log.Println(err)
@@ -84,7 +84,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 		return nil, err
 	}
 
-	is_admin := r.Repositories.User.CheckIfUserIsAdmin(userID)
+	is_admin := r.Domain.User.CheckIfUserIsAdmin(userID)
 
 	if userID != id && !is_admin {
 		return nil, fmt.Errorf("access denied")
@@ -116,7 +116,7 @@ func (r *mutationResolver) UpdateUser(ctx context.Context, id string, input mode
 		updateUser.Email = *input.Email
 	}
 
-	result, err := r.Repositories.User.UpdateUserByID(id, updateUser)
+	result, err := r.Domain.User.UpdateUserByID(id, updateUser)
 
 	if err != nil {
 		log.Println(err)
@@ -142,13 +142,13 @@ func (r *mutationResolver) DisableUser(ctx context.Context, id string) (bool, er
 		return false, err
 	}
 
-	is_admin := r.Repositories.User.CheckIfUserIsAdmin(userID)
+	is_admin := r.Domain.User.CheckIfUserIsAdmin(userID)
 
 	if !is_admin {
 		return false, fmt.Errorf("access denied")
 	}
 
-	_, err = r.Repositories.User.DisableUserByID(id)
+	_, err = r.Domain.User.DisableUserByID(id)
 
 	if err != nil {
 		log.Println(err)
@@ -160,7 +160,7 @@ func (r *mutationResolver) DisableUser(ctx context.Context, id string) (bool, er
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.LoginResponse, error) {
-	token, err := r.Repositories.User.Login(email, password)
+	token, err := r.Domain.User.Login(email, password)
 
 	if err != nil {
 		return &model.LoginResponse{
@@ -183,7 +183,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 		return nil, err
 	}
 
-	users, err := r.Repositories.User.GetUsers(
+	users, err := r.Domain.User.GetUsers(
 		1,
 	)
 
@@ -226,7 +226,7 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 		return nil, err
 	}
 
-	user, err := r.Repositories.User.GetUserByID(id)
+	user, err := r.Domain.User.GetUserByID(id)
 
 	if err != nil {
 		return nil, err
@@ -251,7 +251,7 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 		return nil, err
 	}
 
-	user, err := r.Repositories.User.GetUserByID(userID)
+	user, err := r.Domain.User.GetUserByID(userID)
 
 	if err != nil {
 		return nil, err

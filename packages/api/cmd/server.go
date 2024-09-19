@@ -13,11 +13,11 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/db"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/domain"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graphql"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graphql/resolvers"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/helpers"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/middleware"
-	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/repository"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -77,7 +77,7 @@ func graphqlHandler(introspectionEnabled bool) gin.HandlerFunc {
 		graphql.NewExecutableSchema(
 			graphql.Config{
 				Resolvers: &resolvers.Resolver{
-					Repositories: repository.Init(
+					Domain: domain.Init(
 						conn,
 						awsSession,
 					),
