@@ -12,43 +12,117 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	gqlgen "github.com/BRAVO68WEB/collaborate-with-me/packages/api/graphql"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/graphql/model"
+	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/models"
 	"github.com/BRAVO68WEB/collaborate-with-me/packages/api/repository"
 	appContext "github.com/BRAVO68WEB/collaborate-with-me/packages/api/utils"
 )
 
 // CreateWorkspace is the resolver for the createWorkspace field.
 func (r *mutationResolver) CreateWorkspace(ctx context.Context, input model.NewWorkspace) (*model.Workspace, error) {
-	panic(fmt.Errorf("not implemented: CreateWorkspace - createWorkspace"))
+	userID, err := appContext.UserIDFromContext(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	w, err := r.Domain.Workspace.CreateWorkspace(input.Name, userID, input.IsPublic)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return &model.Workspace{
+		ID:        w.ID.Hex(),
+		Name:      w.Name,
+		IsPublic:  w.IsPublic,
+		CreatedAt: w.CreatedAt.Time().UTC().String(),
+		UpdatedAt: w.UpdatedAt.Time().UTC().String(),
+	}, nil
 }
 
 // UpdateWorkspace is the resolver for the updateWorkspace field.
 func (r *mutationResolver) UpdateWorkspace(ctx context.Context, id string, input model.NewWorkspace) (*model.Workspace, error) {
-	panic(fmt.Errorf("not implemented: UpdateWorkspace - updateWorkspace"))
+	userID, err := appContext.UserIDFromContext(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	w, err := r.Domain.Workspace.UpdateWorkspace(userID, id, input.Name)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return &model.Workspace{
+		ID:        w.ID.Hex(),
+		Name:      w.Name,
+		IsPublic:  w.IsPublic,
+		CreatedAt: w.CreatedAt.Time().UTC().String(),
+		UpdatedAt: w.UpdatedAt.Time().UTC().String(),
+	}, nil
 }
 
 // DeleteWorkspace is the resolver for the deleteWorkspace field.
 func (r *mutationResolver) DeleteWorkspace(ctx context.Context, id string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteWorkspace - deleteWorkspace"))
+	err := r.Domain.Workspace.DeleteWorkspace(id)
+
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+
+	return true, nil
 }
 
 // AddUserToWorkspace is the resolver for the addUserToWorkspace field.
 func (r *mutationResolver) AddUserToWorkspace(ctx context.Context, workspaceID string, userID string) (*model.Workspace, error) {
-	panic(fmt.Errorf("not implemented: AddUserToWorkspace - addUserToWorkspace"))
+	_, err := r.Domain.Workspace.AddUserToWorkspace(workspaceID, userID)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 // RemoveUserFromWorkspace is the resolver for the removeUserFromWorkspace field.
 func (r *mutationResolver) RemoveUserFromWorkspace(ctx context.Context, workspaceID string, userID string) (*model.Workspace, error) {
-	panic(fmt.Errorf("not implemented: RemoveUserFromWorkspace - removeUserFromWorkspace"))
+	_, err := r.Domain.Workspace.RemoveUserFromWorkspace(workspaceID, userID)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 // AddExcalidrawObject is the resolver for the addExcalidrawObject field.
 func (r *mutationResolver) AddExcalidrawObject(ctx context.Context, workspaceID string, object any) (*model.Workspace, error) {
-	panic(fmt.Errorf("not implemented: AddExcalidrawObject - addExcalidrawObject"))
+	_, err := r.Domain.Workspace.AddExcalidrawObject(workspaceID, object.(models.ExcaliObjects))
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 // RemoveExcalidrawObject is the resolver for the removeExcalidrawObject field.
 func (r *mutationResolver) RemoveExcalidrawObject(ctx context.Context, workspaceID string, objectID string) (*model.Workspace, error) {
-	panic(fmt.Errorf("not implemented: RemoveExcalidrawObject - removeExcalidrawObject"))
+	_, err := r.Domain.Workspace.RemoveExcalidrawObject(workspaceID, objectID)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 // SingleUpload is the resolver for the singleUpload field.
@@ -220,12 +294,54 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 // Workspaces is the resolver for the workspaces field.
 func (r *queryResolver) Workspaces(ctx context.Context, userID *string) ([]*model.Workspace, error) {
-	panic(fmt.Errorf("not implemented: Workspaces - workspaces"))
+	_, err := appContext.UserIDFromContext(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	workspaces, err := r.Domain.Workspace.GetWorkspaces(*userID)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result []*model.Workspace
+
+	for _, workspace := range workspaces {
+		result = append(result, &model.Workspace{
+			ID:        workspace.ID.Hex(),
+			Name:      workspace.Name,
+			IsPublic:  workspace.IsPublic,
+			CreatedAt: workspace.CreatedAt.Time().UTC().String(),
+			UpdatedAt: workspace.UpdatedAt.Time().UTC().String(),
+		})
+	}
+
+	return result, nil
 }
 
 // Workspace is the resolver for the workspace field.
 func (r *queryResolver) Workspace(ctx context.Context, id string, userID string) (*model.Workspace, error) {
-	panic(fmt.Errorf("not implemented: Workspace - workspace"))
+	_, err := appContext.UserIDFromContext(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	workspace, err := r.Domain.Workspace.GetWorkspace(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Workspace{
+		ID:        workspace.ID.Hex(),
+		Name:      workspace.Name,
+		IsPublic:  workspace.IsPublic,
+		CreatedAt: workspace.CreatedAt.Time().UTC().String(),
+		UpdatedAt: workspace.UpdatedAt.Time().UTC().String(),
+	}, nil
 }
 
 // User is the resolver for the user field.

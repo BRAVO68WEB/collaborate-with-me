@@ -26,6 +26,5 @@ func NewUploadRepository(
 func (r *uploadRepository) UploadFile(
 	file graphql.Upload,
 ) (string, error) {
-
 	return "", nil
 }

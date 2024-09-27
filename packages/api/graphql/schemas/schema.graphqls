@@ -58,7 +58,6 @@ type UploadResponse {
 input NewWorkspace {
   name: String!
   is_public: Boolean!
-  user_id: ObjectID!
 }
 input NewUser {
   username: String!

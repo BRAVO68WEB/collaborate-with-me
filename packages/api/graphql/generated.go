@@ -5836,7 +5836,7 @@ func (ec *executionContext) unmarshalInputNewWorkspace(ctx context.Context, obj 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "is_public", "user_id"}
+	fieldsInOrder := [...]string{"name", "is_public"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -5857,13 +5857,6 @@ func (ec *executionContext) unmarshalInputNewWorkspace(ctx context.Context, obj 
 				return it, err
 			}
 			it.IsPublic = data
-		case "user_id":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("user_id"))
-			data, err := ec.unmarshalNObjectID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.UserID = data
 		}
 	}
 

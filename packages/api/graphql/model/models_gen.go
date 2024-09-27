@@ -19,7 +19,6 @@ type NewUser struct {
 type NewWorkspace struct {
 	Name     string `json:"name"`
 	IsPublic bool   `json:"is_public"`
-	UserID   string `json:"user_id"`
 }
 
 type Query struct {
