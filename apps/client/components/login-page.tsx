@@ -29,16 +29,13 @@ export function LoginPageComponent() {
     console.log(data)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        // setError('')
 
-        // Here you would typically make an API call to authenticate the user
-        // For this example, we'll just simulate a successful login
         try {
             // Simulated API call
             const res = await login({
                 variables: {
                     email,
-                    password,
+                    password
                 },
             })
             console.log(res.data?.login.access_token)
