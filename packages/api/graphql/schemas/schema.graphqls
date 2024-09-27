@@ -1,0 +1,126 @@
+scalar Any
+scalar DateTime
+scalar ObjectID
+scalar Upload
+
+type User {
+  id: ObjectID!
+  username: String!
+  email: String!
+  role: String!
+  is_active: Boolean!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+input UpdateUser {
+  username: String
+  password: String
+  email: String
+  role: String
+}
+
+type Workspace {
+  id: ObjectID!
+  name: String!
+  is_active: Boolean!
+  is_public: Boolean!
+  owner: User!
+  collaborators: [User!]!
+  excalidraw_objects: [Any!]!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Query {
+  users: [User!]!
+  workspaces(
+    user_id: ID
+  ): [Workspace!]!
+  workspace(
+    id: ObjectID!,
+    user_id: ObjectID!
+  ): Workspace!
+  user(id: ObjectID!): User!
+  me: User!
+}
+
+type LoginResponse {
+  is_success: Boolean!
+  access_token: String!
+}
+
+type UploadResponse {
+  is_success: Boolean!
+  s3_url: String
+}
+
+input NewWorkspace {
+  name: String!
+  is_public: Boolean!
+  user_id: ObjectID!
+}
+input NewUser {
+  username: String!
+  email: String!
+  password: String!
+}
+
+type Subscription {
+  liveWorkspaceUpdates(
+    workspace_id: ObjectID!
+  ): Any!
+  liveUserUpdates(
+    user_id: ObjectID!
+  ): User!
+  liveWorkspaceCollaborators(
+    workspace_id: ObjectID!
+  ): [User!]!
+}
+
+type Mutation {
+  createWorkspace(
+    input: NewWorkspace!
+  ): Workspace!
+  updateWorkspace(
+    id: ObjectID!
+    input: NewWorkspace!
+  ): Workspace!
+  deleteWorkspace(
+    id: ObjectID!
+  ): Boolean!
+  addUserToWorkspace(
+    workspace_id: ObjectID!
+    user_id: ObjectID!
+  ): Workspace!
+  removeUserFromWorkspace(
+    workspace_id: ObjectID!
+    user_id: ObjectID!
+  ): Workspace!
+  addExcalidrawObject(
+    workspace_id: ObjectID!
+    object: Any!
+  ): Workspace!
+  removeExcalidrawObject(
+    workspace_id: ObjectID!
+    object_id: ObjectID!
+  ): Workspace!
+  singleUpload(
+    file: Upload!
+  ): UploadResponse!
+
+  createUser(
+    input: NewUser!
+  ): User!
+  updateUser(
+    id: ObjectID!
+    input: UpdateUser!
+  ): User!
+  disableUser(
+    id: ObjectID!
+  ): Boolean!
+  login(
+    email: String!
+    password: String!
+  ): LoginResponse!
+}
