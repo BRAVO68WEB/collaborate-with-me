@@ -16,6 +16,11 @@
         "plugins": [
             {
                 "name": "next"
+            },
+            {
+                "name": "gql.tada/ts-plugin",
+                "schema": "http://localhost:4040/query",
+                "tadaOutputLocation": "./types/graphql-env.d.ts"
             }
         ],
         "resolveJsonModule": true,

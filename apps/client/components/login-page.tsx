@@ -35,13 +35,13 @@ export function LoginPageComponent() {
         // For this example, we'll just simulate a successful login
         try {
             // Simulated API call
-            await login({
+            const res = await login({
                 variables: {
                     email,
                     password,
                 },
             })
-            console.log(data)
+            console.log(res.data?.login.access_token)
             // If login is successful, redirect to workspaces page
             router.push('/')
         } catch (err) {
