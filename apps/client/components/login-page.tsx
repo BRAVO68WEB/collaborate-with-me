@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useMutation } from '@apollo/client'
 import { LOGIN_USER } from '@/lib/queries/user'
 import { apolloClient } from '@/lib/apolloClient'
+import Cookies from 'js-cookie'
 
 export function LoginPageComponent() {
     const [email, setEmail] = useState('')
@@ -38,7 +39,8 @@ export function LoginPageComponent() {
                     password
                 },
             })
-            console.log(res.data?.login.access_token)
+            const token = (res.data?.login.access_token)
+            Cookies.set('token', token??"")
             // If login is successful, redirect to workspaces page
             router.push('/')
         } catch (err) {

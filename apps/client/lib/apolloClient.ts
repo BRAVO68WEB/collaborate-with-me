@@ -9,6 +9,7 @@ const createApolloClient = () => {
         headers: {
             authorization: token ? `Bearer ${token}` : '',
         },
+        
     })
 }
 

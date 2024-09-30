@@ -170,6 +170,7 @@ func (r *mutationResolver) DisableUser(ctx context.Context, id string) (bool, er
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.LoginResponse, error) {
+	println("login")
 	token, err := r.Domain.User.Login(email, password)
 
 	if err != nil {

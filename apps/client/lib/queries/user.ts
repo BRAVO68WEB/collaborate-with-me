@@ -9,3 +9,17 @@ export const LOGIN_USER = graphql(`
         }
     }
 `)
+
+export const GET_ME = graphql(`
+    query GetUser {
+        me {
+            id
+            username
+            email
+            role
+            is_active
+            created_at
+            updated_at
+        }
+    }
+`)
